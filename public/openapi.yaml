@@ -1,0 +1,428 @@
+openapi: 3.1.0
+info:
+  title: Country & Currency Exchange with Data Caching API
+  description: |
+    A RESTful API that provides cached, processed country and currency data with calculated GDP estimates.
+    
+    This API fetches data from external sources (RestCountries and Exchange Rate APIs), combines and transforms 
+    the data with calculated fields, and exposes several endpoints for CRUD operations, filtering, sorting, 
+    status checks, and image serving.
+    
+    ## Features
+    - Fetch and cache country data from external APIs
+    - Calculate estimated GDP based on population and exchange rates
+    - Filter countries by region and currency
+    - Sort countries by estimated GDP
+    - Case-insensitive country name lookups
+    - Generate summary images with top countries by GDP
+    - Atomic transaction-based data refresh
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@hngi13BEwizards.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: n/a
+    description: Local development server
+  - url: n/a
+    description: Production server (update with actual URL)
+
+tags:
+  - name: Countries
+    description: Operations related to country data
+  - name: Status
+    description: API status and metadata
+  - name: Images
+    description: Summary image generation and serving
+
+paths:
+  /countries/refresh:
+    post:
+      tags:
+        - Countries
+      summary: Refresh country data from external APIs
+      description: |
+        Fetches fresh data from RestCountries and Exchange Rate APIs, processes the data,
+        calculates estimated GDP for each country, and stores everything in the database
+        using atomic transactions. Also generates a summary image upon successful completion.
+      operationId: refreshCountries
+      responses:
+        '200':
+          description: Data refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Countries data refreshed successfully"
+                  processed:
+                    type: integer
+                    description: Number of countries successfully processed
+                    example: 250
+                  errors:
+                    type: integer
+                    description: Number of countries that failed processing
+                    example: 0
+                  total_countries:
+                    type: integer
+                    description: Total countries in database after refresh
+                    example: 250
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: Timestamp when refresh completed
+                    example: "2025-10-24 19:18:49"
+        '503':
+          description: External API unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "External data source unavailable"
+                message: "Failed to fetch countries data: Connection timeout"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /countries:
+    get:
+      tags:
+        - Countries
+      summary: Get all countries
+      description: |
+        Retrieve a list of all countries with optional filtering and sorting capabilities.
+        Supports filtering by region and currency code, and sorting by estimated GDP.
+      operationId: getAllCountries
+      parameters:
+        - name: region
+          in: query
+          description: Filter countries by region (e.g., Africa, Asia, Europe, Americas, Oceania, Polar)
+          required: false
+          schema:
+            type: string
+            example: "Africa"
+        - name: currency
+          in: query
+          description: Filter countries by currency code (ISO 4217, 3 letters)
+          required: false
+          schema:
+            type: string
+            pattern: '^[A-Z]{3}$'
+            example: "USD"
+        - name: sort
+          in: query
+          description: Sort order for results
+          required: false
+          schema:
+            type: string
+            enum:
+              - gdp_desc
+            example: "gdp_desc"
+      responses:
+        '200':
+          description: List of countries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Country'
+                  count:
+                    type: integer
+                    description: Number of countries returned
+                    example: 250
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid sort parameter"
+                message: "Allowed values: gdp_desc"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /countries/{name}:
+    get:
+      tags:
+        - Countries
+      summary: Get a specific country by name
+      description: |
+        Retrieve detailed information about a specific country by its name.
+        The lookup is case-insensitive.
+      operationId: getCountryByName
+      parameters:
+        - name: name
+          in: path
+          description: Country name (case-insensitive)
+          required: true
+          schema:
+            type: string
+            example: "Nigeria"
+      responses:
+        '200':
+          description: Country found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Country'
+        '404':
+          description: Country not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Country not found"
+                message: "Country 'XYZ' not found"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Countries
+      summary: Delete a country by name
+      description: |
+        Remove a country from the database by its name.
+        The lookup is case-insensitive.
+      operationId: deleteCountry
+      parameters:
+        - name: name
+          in: path
+          description: Country name (case-insensitive)
+          required: true
+          schema:
+            type: string
+            example: "Nigeria"
+      responses:
+        '200':
+          description: Country deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Country 'Nigeria' deleted successfully"
+        '404':
+          description: Country not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /status:
+    get:
+      tags:
+        - Status
+      summary: Get API status and metadata
+      description: |
+        Returns global metadata including total number of countries in the database
+        and the timestamp of the last successful data refresh.
+      operationId: getStatus
+      responses:
+        '200':
+          description: Status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /countries/image:
+    get:
+      tags:
+        - Images
+      summary: Get summary image
+      description: |
+        Returns a PNG image showing a summary of country data including:
+        - Total number of countries
+        - Top 5 countries by estimated GDP
+        - Last refresh timestamp
+        
+        This image is generated automatically after each successful data refresh.
+      operationId: getSummaryImage
+      responses:
+        '200':
+          description: Image retrieved successfully
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: image/png
+            Content-Length:
+              schema:
+                type: integer
+                example: 7228
+            Cache-Control:
+              schema:
+                type: string
+                example: "public, max-age=3600"
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Image not found"
+                message: "Summary image has not been generated yet. Please run POST /countries/refresh first."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Country:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the country
+          example: "163"
+        name:
+          type: string
+          description: Country name
+          example: "Nigeria"
+        capital:
+          type: string
+          nullable: true
+          description: Capital city
+          example: "Abuja"
+        region:
+          type: string
+          nullable: true
+          description: Geographic region
+          example: "Africa"
+        population:
+          type: string
+          description: Population count
+          example: "206139587"
+        currency_code:
+          type: string
+          nullable: true
+          description: ISO 4217 currency code (3 letters)
+          example: "NGN"
+        exchange_rate:
+          type: string
+          nullable: true
+          description: Exchange rate relative to USD
+          example: "1461.543789"
+        estimated_gdp:
+          type: string
+          nullable: true
+          description: |
+            Estimated GDP calculated using the formula:
+            GDP = (population × random_multiplier) ÷ exchange_rate
+            where random_multiplier is between 1000-2000
+          example: "212550838.33072"
+        flag_url:
+          type: string
+          nullable: true
+          format: uri
+          description: URL to country flag image
+          example: "https://flagcdn.com/ng.svg"
+        last_refreshed_at:
+          type: string
+          format: date-time
+          description: Timestamp when this country's data was last refreshed
+          example: "2025-10-24 19:18:49"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when this country was first added to database
+          example: "2025-10-24 19:18:49"
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when this country was last updated
+          example: "2025-10-24 19:18:49"
+
+    Status:
+      type: object
+      properties:
+        total_countries:
+          type: integer
+          description: Total number of countries in the database
+          example: 250
+        last_refreshed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of the last successful data refresh
+          example: "2025-10-24 19:18:49"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type or category
+          example: "Country not found"
+        message:
+          type: string
+          description: Detailed error message
+          example: "Country 'XYZ' not found"
+        details:
+          type: array
+          nullable: true
+          description: Stack trace (only present when APP_DEBUG=true)
+          items:
+            type: object
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        API key for authentication (if implemented in future versions)
+
+# Global security (currently open, can be enabled later)
+# security:
+#   - ApiKeyAuth: []

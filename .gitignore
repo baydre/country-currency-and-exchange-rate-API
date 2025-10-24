@@ -1,0 +1,10 @@
+/vendor/
+.env
+database/database.sqlite
+cache/*.png
+cache/*.jpg
+.DS_Store
+*.log
+.idea/
+.vscode/
+composer.lock
