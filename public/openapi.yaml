@@ -26,10 +26,10 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: n/a
+  - url: http://localhost:8000
     description: Local development server
-  - url: n/a
-    description: Production server (update with actual URL)
+  - url: https://your-production-url.com
+    description: Production server (update with your actual deployment URL)
 
 tags:
   - name: Countries
