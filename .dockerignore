@@ -1,0 +1,40 @@
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Dependencies
+vendor/
+node_modules/
+
+# Testing
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# Documentation
+README.md
+GUIDE.md
+task.md
+
+# Cache and temp files
+cache/*
+!cache/.gitkeep
+*.log
+
+# Database (will be created in container)
+database/database.sqlite
+database/database.sqlite-journal
+
+# OS files
+.DS_Store
+Thumbs.db

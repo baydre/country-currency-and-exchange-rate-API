@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=database/database.sqlite
+      - RESTCOUNTRIES_API=https://restcountries.com/v2/all
+      - EXCHANGERATE_API=https://open.er-api.com/v6/latest/USD
+      - APP_DEBUG=false
+      - CACHE_DIR=cache
+    volumes:
+      - ./database:/app/database
+      - ./cache:/app/cache
+    restart: unless-stopped
