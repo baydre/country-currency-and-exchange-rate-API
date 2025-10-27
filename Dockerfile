@@ -1,7 +1,7 @@
 FROM php:8.2-cli-alpine
 
 # Install dependencies
-RUN apk add --no-cache sqlite \
+RUN apk add --no-cache sqlite-libs sqlite-dev \
     && docker-php-ext-install pdo_sqlite
 
 # Copy composer
@@ -17,6 +17,9 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 
 # Copy application
 COPY . .
+
+# Create .env file from example if it doesn't exist
+RUN if [ ! -f .env ]; then cp .env.example .env; fi
 
 # Setup database and cache directories
 RUN mkdir -p database cache && \
