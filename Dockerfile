@@ -6,8 +6,12 @@ RUN apk add --no-cache \
     sqlite-dev \
     mysql-client \
     mariadb-dev \
-    && docker-php-ext-install pdo_sqlite pdo_mysql \
-    && docker-php-ext-enable pdo_sqlite pdo_mysql
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) gd pdo_sqlite pdo_mysql \
+    && docker-php-ext-enable gd pdo_sqlite pdo_mysql
 
 # Set working directory
 WORKDIR /app
@@ -29,8 +33,13 @@ COPY . .
 # Setup environment file
 COPY .env.example .env
 
-# Generate optimized autoload files
-RUN composer dump-autoload --optimize
+# Ensure vendor autoload exists
+RUN if [ ! -f "vendor/autoload.php" ]; then \
+        php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" && \
+        php composer-setup.php --install-dir=/usr/local/bin --filename=composer && \
+        php -r "unlink('composer-setup.php');" && \
+        composer install --no-dev --optimize-autoloader --ignore-platform-reqs; \
+    fi
 
 # Set proper permissions and ensure directories exist
 RUN mkdir -p cache && \
