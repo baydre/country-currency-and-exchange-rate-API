@@ -32,7 +32,7 @@ RUN composer dump-autoload --optimize
 RUN chown -R www-data:www-data /app
 
 # Expose port
-EXPOSE 8000
+EXPOSE 8080
 
 # Start PHP built-in server from the public directory
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8000} -t public/"]
+CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public/"]
