@@ -226,6 +226,33 @@ class Country
     public function getApiStatus()
     {
         $sql = "SELECT * FROM api_status WHERE id = 1";
-        return $this->db->fetchOne($sql);
+        $status = $this->db->fetchOne($sql);
+        
+        if ($status && !empty($status['last_refreshed_at'])) {
+            // Convert SQLite datetime to ISO 8601 format
+            $status['last_refreshed_at'] = $this->formatTimestamp($status['last_refreshed_at']);
+        }
+        
+        return $status;
+    }
+    
+    /**
+     * Format timestamp to ISO 8601
+     *
+     * @param string|null $timestamp
+     * @return string|null
+     */
+    private function formatTimestamp($timestamp)
+    {
+        if (empty($timestamp)) {
+            return null;
+        }
+        
+        try {
+            $dt = new \DateTime($timestamp, new \DateTimeZone('UTC'));
+            return $dt->format('Y-m-d\TH:i:s\Z');
+        } catch (\Exception $e) {
+            return $timestamp; // Return original if parsing fails
+        }
     }
 }

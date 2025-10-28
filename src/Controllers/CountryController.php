@@ -78,10 +78,7 @@ class CountryController
 
         try {
             $countries = $this->countryService->getAllCountries($filters, $sort);
-            jsonResponse([
-                'data' => $countries,
-                'count' => count($countries)
-            ], 200);
+            jsonResponse($countries, 200);
             
         } catch (\Exception $e) {
             jsonResponse([
@@ -110,9 +107,7 @@ class CountryController
 
         try {
             $country = $this->countryService->getCountryByName($name);
-            jsonResponse([
-                'data' => $country
-            ], 200);
+            jsonResponse($country, 200);
             
         } catch (NotFoundException $e) {
             jsonResponse([
