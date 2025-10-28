@@ -587,4 +587,4 @@ This project is licensed under the MIT License.
 
 - RestCountries API for comprehensive country data
 - Open Exchange Rates for currency data
-- PHP GD Library for image generation
+- PHP GD Library for image generation.
