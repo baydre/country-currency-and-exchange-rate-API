@@ -26,10 +26,12 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
+  - url: https://country-currency-and-exchange-rate-api-production.up.railway.app
+    description: Production server
   - url: http://localhost:8000
     description: Local development server
-  - url: https://your-production-url.com
-    description: Production server (update with your actual deployment URL)
+  - url: http://localhost:8080
+    description: Local development server (alternate port)
 
 tags:
   - name: Countries
@@ -38,8 +40,115 @@ tags:
     description: API status and metadata
   - name: Images
     description: Summary image generation and serving
+  - name: Health
+    description: Health check and system monitoring
 
 paths:
+  /:
+    get:
+      tags:
+        - Status
+      summary: API Information
+      description: |
+        Get general information about the API including available endpoints,
+        version, documentation links, and current status.
+      operationId: getApiInfo
+      responses:
+        '200':
+          description: API information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "Country & Currency Data Caching API"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  description:
+                    type: string
+                    example: "A RESTful API that provides cached, processed country and currency data with calculated GDP estimates"
+                  documentation:
+                    type: object
+                    properties:
+                      interactive:
+                        type: string
+                        example: "/docs"
+                      openapi_spec:
+                        type: string
+                        example: "/openapi.yaml"
+                  endpoints:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  status:
+                    type: string
+                    example: "operational"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check endpoint
+      description: |
+        Check the health status of the API and its dependencies.
+        Returns the status of database connection, cache directory, and overall system health.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-10-28 13:00:00"
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: "healthy"
+                      cache_directory:
+                        type: string
+                        example: "healthy"
+                  uptime:
+                    type: boolean
+                    example: true
+        '503':
+          description: System is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "unhealthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  checks:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        example: "unhealthy"
+                      cache_directory:
+                        type: string
+                        example: "healthy"
+
   /countries/refresh:
     post:
       tags:
