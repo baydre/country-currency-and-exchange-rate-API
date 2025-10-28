@@ -1,31 +1,39 @@
-FROM php:8.2-cli-alpine
-
-# Install dependencies
-RUN apk add --no-cache sqlite-libs sqlite-dev sqlite \
-    && docker-php-ext-install pdo_sqlite
-
-# Copy composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Use a build stage to install dependencies
+FROM composer:2 as build
 
 WORKDIR /app
 
-# Copy all source files (including composer.json and public/)
+# Copy source files
 COPY . .
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-scripts
+# Install dependencies
+# Use a cache mount to speed up subsequent builds
+RUN --mount=type=cache,id=composer,target=/root/.composer/cache composer install --no-dev --optimize-autoloader
 
-# Ensure .env exists
-RUN cp -n .env.example .env || true
+# Use a production-ready PHP image with Apache
+FROM php:8.2-apache
 
-# Setup database and cache directories
-RUN mkdir -p database cache && \
-    chmod 775 database cache && \
-    touch database/database.sqlite && \
-    sqlite3 database/database.sqlite ".read database/schema.sql" || true
+# Railway provides the PORT environment variable
+# Let's make sure Apache listens on the correct port
+ARG PORT=8000
+RUN sed -i "s/80/${PORT}/g" /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
 
-# Expose port
-EXPOSE 8000
+# Install required extensions
+RUN apt-get update && apt-get install -y \
+    libsqlite3-dev \
+    && docker-php-ext-install pdo pdo_sqlite \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Run PHP dev server
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8000} -t public"]
+# Copy application files from the build stage
+COPY --from=build /app /var/www/html
+
+# Set the document root to the public directory
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf && \
+    a2enmod rewrite
+
+# Set correct permissions for the web server
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 775 /var/www/html/database /var/www/html/cache
+
+# The default CMD for php:apache is to run apache2-foreground, which is what we want.
+# No need to specify a CMD unless we want to override it.
