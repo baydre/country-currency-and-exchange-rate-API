@@ -220,10 +220,13 @@ class Router
         $pattern = '#^' . $pattern . '$#';
 
         if (preg_match($pattern, $uri, $matches)) {
-            // Extract only named parameters
-            return array_filter($matches, function($key) {
+            // Extract only named parameters and URL-decode them
+            $params = array_filter($matches, function($key) {
                 return !is_numeric($key);
             }, ARRAY_FILTER_USE_KEY);
+            
+            // URL-decode all parameter values
+            return array_map('urldecode', $params);
         }
 
         return false;
