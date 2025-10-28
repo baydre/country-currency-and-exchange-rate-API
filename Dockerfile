@@ -25,14 +25,19 @@ RUN composer install --no-dev --no-scripts --no-autoloader --ignore-platform-req
 # Copy the rest of the application
 COPY . .
 
+# Setup environment file
+COPY .env.example .env
+
 # Generate optimized autoload files
 RUN composer dump-autoload --optimize
 
-# Set proper permissions
-RUN chown -R www-data:www-data /app
+# Set proper permissions and ensure cache directory exists
+RUN mkdir -p cache && \
+    chown -R www-data:www-data /app && \
+    chmod -R 755 cache database
 
 # Expose port
 EXPOSE 8080
 
 # Start PHP built-in server from the public directory
-CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8080} -t public/"]
+CMD ["sh", "-c", "php -S 0.0.0.0:8080 -t public/"]
