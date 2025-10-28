@@ -2,6 +2,7 @@ FROM php:8.2-cli-alpine
 
 # Install system dependencies and PHP extensions
 RUN apk add --no-cache \
+    sqlite \
     sqlite-dev \
     mysql-client \
     mariadb-dev \
@@ -31,13 +32,17 @@ COPY .env.example .env
 # Generate optimized autoload files
 RUN composer dump-autoload --optimize
 
-# Set proper permissions and ensure cache directory exists
+# Set proper permissions and ensure directories exist
 RUN mkdir -p cache && \
+    mkdir -p database && \
+    touch database/database.sqlite && \
+    sqlite3 database/database.sqlite < database/schema.sql && \
     chown -R www-data:www-data /app && \
-    chmod -R 755 cache database
+    chmod -R 755 cache database && \
+    chmod 666 database/database.sqlite
 
-# Expose port
-EXPOSE 8080
+# Expose port (default: 8000)
+EXPOSE 8000
 
 # Start PHP built-in server from the public directory
-CMD ["sh", "-c", "php -S 0.0.0.0:8080 -t public/"]
+CMD ["sh", "-c", "sqlite3 database/database.sqlite < database/schema.sql 2>/dev/null || true && php -S 0.0.0.0:8000 -t public/"]
