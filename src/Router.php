@@ -67,7 +67,7 @@ class Router
      */
     public function serveOpenApi($params = [])
     {
-        $openApiPath = __DIR__ . '/../openapi.yaml';
+        $openApiPath = __DIR__ . '/../public/openapi.yaml';
         
         if (!file_exists($openApiPath)) {
             jsonResponse([
@@ -75,8 +75,10 @@ class Router
             ], 404);
         }
 
-        header('Content-Type: application/yaml');
+        header('Content-Type: application/yaml; charset=utf-8');
         header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, Accept, Origin');
         readfile($openApiPath);
         exit;
     }

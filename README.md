@@ -467,6 +467,97 @@ touch database/database.sqlite
 sqlite3 database/database.sqlite < database/schema.sql
 ```
 
+### Empty Data in Production
+
+**Problem**: `GET /countries` returns `{"data": [], "count": 0}`
+
+**Solution**: The database needs to be populated first. Run this command:
+
+```bash
+curl -X POST https://your-production-url.com/countries/refresh
+```
+
+This will:
+1. Fetch data from external APIs
+2. Process and calculate GDP estimates
+3. Store everything in the database
+4. Generate the summary image
+
+After this, all endpoints will return data correctly.
+
+### CORS Issues with OpenAPI Docs
+
+**Problem**: "Failed to fetch" error in Swagger UI or Postman
+
+**Solution**: CORS headers are already configured. Make sure:
+1. Your production URL uses `https://` (not `http://`)
+2. The server is actually running and accessible
+3. Check server logs for any errors
+
+## 🐳 Docker Deployment
+
+### Using Docker
+
+```bash
+# Build the image
+docker build -t country-currency-api .
+
+# Run the container
+docker run -d -p 8000:8000 country-currency-api
+
+# Or map to a different port
+docker run -d -p 3000:8000 country-currency-api
+```
+
+### Important: Initialize Data After Deployment
+
+After deploying (whether Docker or traditional hosting):
+
+```bash
+# Initialize the database with data
+curl -X POST https://your-production-url.com/countries/refresh
+
+# Verify data is loaded
+curl https://your-production-url.com/status
+```
+
+**Note**: This step is **required** for production deployments. The database starts empty and needs to be populated with data from external APIs.
+
+## 🔧 Troubleshooting
+
+### Port Already in Use
+
+```bash
+# Use different port
+php -S localhost:8080 -t public
+```
+
+### Permission Denied
+
+```bash
+chmod 755 cache database
+chmod 664 database/database.sqlite
+```
+
+### GD Extension Not Found
+
+```bash
+# Ubuntu/Debian
+sudo apt install php-gd
+
+# Verify
+php -m | grep gd
+```
+
+### Database Locked
+
+```bash
+# Remove database and recreate
+rm database/database.sqlite
+touch database/database.sqlite
+sqlite3 database/database.sqlite < database/schema.sql
+```
+
 ## 📚 External APIs Used
 
 - **RestCountries API**: https://restcountries.com/v2/all

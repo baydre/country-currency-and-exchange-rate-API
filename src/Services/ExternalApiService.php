@@ -23,7 +23,11 @@ class ExternalApiService
         $this->httpClient = new Client([
             'timeout' => 30,
             'connect_timeout' => 10,
-            'verify' => false, // For development, set to true in production
+            'verify' => true, // SSL verification enabled
+            'headers' => [
+                'User-Agent' => 'Country-Currency-API/1.0',
+                'Accept' => 'application/json',
+            ]
         ]);
 
         $this->countriesApiUrl = env('RESTCOUNTRIES_API', 'https://restcountries.com/v2/all');
