@@ -1,7 +1,7 @@
 FROM php:8.2-cli-alpine
 
 # Install dependencies
-RUN apk add --no-cache sqlite-libs sqlite-dev \
+RUN apk add --no-cache sqlite-libs sqlite-dev sqlite \
     && docker-php-ext-install pdo_sqlite
 
 # Copy composer
@@ -9,30 +9,23 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copy composer files first for better caching
-COPY composer.json composer.lock ./
+# Copy all source files (including composer.json and public/)
+COPY . .
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader --no-scripts
 
-# Copy application
-COPY . .
-
-# Create .env file from example if it doesn't exist
-RUN if [ ! -f .env ]; then cp .env.example .env; fi
+# Ensure .env exists
+RUN cp -n .env.example .env || true
 
 # Setup database and cache directories
 RUN mkdir -p database cache && \
-    chmod 775 database cache
-
-# Initialize database if it doesn't exist (will run at build time)
-RUN if [ ! -f database/database.sqlite ]; then \
+    chmod 775 database cache && \
     touch database/database.sqlite && \
-    sqlite3 database/database.sqlite < database/schema.sql; \
-    fi
+    sqlite3 database/database.sqlite ".read database/schema.sql" || true
 
 # Expose port
 EXPOSE 8000
 
-# Run built-in PHP server from public directory
+# Run PHP dev server
 CMD ["sh", "-c", "php -S 0.0.0.0:${PORT:-8000} -t public"]
