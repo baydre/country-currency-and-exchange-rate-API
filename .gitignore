@@ -7,4 +7,3 @@ cache/*.jpg
 *.log
 .idea/
 .vscode/
-composer.lock
